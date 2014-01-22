@@ -36,7 +36,6 @@ class PublisherConfig extends BrokerConfig {
 
 
 // TODO: Multiple channels
-// TODO: Implicts
 // TODO: Publisher confirms
 class ReliablePublisher(config: PublisherConfig) extends Actor {
 
