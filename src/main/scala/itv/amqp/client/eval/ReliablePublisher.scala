@@ -47,7 +47,7 @@ class ReliablePublisher(config: PublisherConfig) extends Actor {
   // TODO: Handle more messages
   override def receive = {
     case Payload(routingKey, contents) => channel ! Publish(exchange.name, routingKey,
-      properties = Some(ReliablePublisher.PersistentDeliveryMode), mandatory = true, immediate = false, body = contents)
+      properties = Some(ReliablePublisher.PersistentDeliveryMode), mandatory = false, immediate = false, body = contents)
     case other => println(s"Failed to handle message: $other")
   }
 }
