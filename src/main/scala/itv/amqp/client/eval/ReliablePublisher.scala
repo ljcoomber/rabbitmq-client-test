@@ -44,8 +44,6 @@ class ReliablePublisher(config: PublisherConfig) extends Actor {
 
   lazy val channel = ReliablePublisher.makeChannel(context.system, config, exchange)
 
-  Amqp.waitForConnection(context.system, channel)
-
 
   // TODO: Handle more messages
   override def receive = {
