@@ -39,15 +39,17 @@ class PublisherConfig extends BrokerConfig {
 // TODO: Publisher confirms
 class ReliablePublisher(config: PublisherConfig) extends Actor {
 
+  import ReliablePublisher._
+
   val exchange = ExchangeParameters(config.exchangeName, passive = false, exchangeType = "direct", durable = true)
 
-  lazy val channel = ReliablePublisher.makeChannel(context.system, config, exchange)
+  lazy val channel = makeChannel(context.system, config, exchange)
 
 
   // TODO: Handle more messages
   override def receive = {
     case Payload(routingKey, contents) => channel ! Publish(exchange.name, routingKey,
-      properties = Some(ReliablePublisher.PersistentDeliveryMode), mandatory = false, immediate = false, body = contents)
+      properties = Some(PersistentDeliveryMode), mandatory = false, immediate = false, body = contents)
     case other => println(s"Failed to handle message: $other")
   }
 }
