@@ -30,8 +30,11 @@ Whilst it is possible to automate some of the tests, they mostly involve doing a
 - [ ] Basic consumer
 - [ ] Re-connection
 - [ ] Transactions
+  - [X] Success
+  - [ ] Failure
 - [ ] Publisher confirms
 - [ ] Queue size
 - [ ] Connection / channel status
+- [ ] Multiple channels
 
 To help with testing, see http://rabbitmq.1065348.n5.nabble.com/Testing-lightweight-publisher-confirms-td834.html 

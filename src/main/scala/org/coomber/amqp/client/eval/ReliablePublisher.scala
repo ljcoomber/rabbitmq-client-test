@@ -38,8 +38,6 @@ class PublisherConfig extends BrokerConfig {
 }
 
 
-// TODO: Multiple channels
-// TODO: Publisher confirms
 class ReliablePublisher(config: PublisherConfig) extends Actor {
 
   import ReliablePublisher._
@@ -48,15 +46,12 @@ class ReliablePublisher(config: PublisherConfig) extends Actor {
 
   lazy val channel = makeChannelOwner(context.system, config, exchange)
 
-
-  // TODO: Handle more messages
   override def receive = {
     case Payload(routingKey, contents) => channel !
       // Tx are slow, but sufficient for now. Look at Publisher Confirms in future
       Transaction(List(Publish(exchange.name, routingKey,
         properties = Some(PersistentDeliveryMode), mandatory = false, immediate = false, body = contents)))
     case Ok(Transaction(committedMsgs), Some(_: CommitOk)) => committedMsgs.map(m => context.parent ! SuccessfulPublish(m.body))
-    // TODO: Failed transaction
     case other => println(s"Failed to handle message: $other")
   }
 }
