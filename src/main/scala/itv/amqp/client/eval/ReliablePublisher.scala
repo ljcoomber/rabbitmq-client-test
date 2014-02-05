@@ -12,8 +12,11 @@ import com.github.sstone.amqp.Amqp.DeclareExchange
 import com.github.sstone.amqp.Amqp.Publish
 import com.github.sstone.amqp.Amqp.ExchangeParameters
 import scala.Some
+import com.rabbitmq.client.AMQP.Tx.CommitOk
 
 case class Payload(routingKey: String, contents: Array[Byte])
+
+case class SuccessfulPublish(contents: Array[Byte])
 
 class BrokerConfig {
   val host = "localhost"
@@ -48,8 +51,12 @@ class ReliablePublisher(config: PublisherConfig) extends Actor {
 
   // TODO: Handle more messages
   override def receive = {
-    case Payload(routingKey, contents) => channel ! Publish(exchange.name, routingKey,
-      properties = Some(PersistentDeliveryMode), mandatory = false, immediate = false, body = contents)
+    case Payload(routingKey, contents) => channel !
+      // Tx are slow, but sufficient for now. Look at Publisher Confirms in future
+      Transaction(List(Publish(exchange.name, routingKey,
+        properties = Some(PersistentDeliveryMode), mandatory = false, immediate = false, body = contents)))
+    case Ok(Transaction(committedMsgs), Some(_: CommitOk)) => committedMsgs.map(m => context.parent ! SuccessfulPublish(m.body))
+    // TODO: Failed transaction
     case other => println(s"Failed to handle message: $other")
   }
 }
