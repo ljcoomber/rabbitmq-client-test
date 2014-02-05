@@ -43,7 +43,7 @@ class ReliablePublisher(config: PublisherConfig) extends Actor {
 
   val exchange = ExchangeParameters(config.exchangeName, passive = false, exchangeType = "direct", durable = true)
 
-  lazy val channel = makeChannel(context.system, config, exchange)
+  lazy val channel = makeChannelOwner(context.system, config, exchange)
 
 
   // TODO: Handle more messages
@@ -65,10 +65,7 @@ object ReliablePublisher {
   }
 
 
-  /**
-   * Create a "connection owner" actor, which will attempt to re-connect
-   */
-  private def connection(system: ActorSystem, config: PublisherConfig) = {
+  private def makeConnectionOwner(system: ActorSystem, config: PublisherConfig) = {
     val conn = system.actorOf(Props(
       new ConnectionOwner(connFactory(config), reconnectionDelay = config.reconnectionDelayMillis.millis)),
       name = s"${config.publisherName}Conn")
@@ -77,9 +74,9 @@ object ReliablePublisher {
   }
 
 
-  def makeChannel(system: ActorSystem, config: PublisherConfig, exchange: ExchangeParameters) = {
+  def makeChannelOwner(system: ActorSystem, config: PublisherConfig, exchange: ExchangeParameters) = {
     val chan = ConnectionOwner.createChildActor(
-      connection(system, config),
+      makeConnectionOwner(system, config),
       Props(new ChannelOwner(init = List(DeclareExchange(exchange)))),
       Some(s"${config.publisherName}Chan"),
       config.makeChannelTimeoutMillis)
