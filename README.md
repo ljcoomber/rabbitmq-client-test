@@ -29,9 +29,9 @@ Whilst it is possible to automate some of the tests, they mostly involve doing a
 - [X] Basic publisher
 - [ ] Basic consumer
 - [ ] Re-connection
-- [ ] Transactions
+- [X] Transactions
   - [X] Success
-  - [ ] Failure
+  - [X] Failure
 - [ ] Publisher confirms
 - [ ] Queue size
 - [ ] Connection / channel status

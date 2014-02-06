@@ -18,6 +18,8 @@ case class Payload(routingKey: String, contents: Array[Byte])
 
 case class SuccessfulPublish(contents: Array[Byte])
 
+case class FailedPublish(contents: Array[Byte], reason: Throwable)
+
 class BrokerConfig {
   val host = "localhost"
   val port = 5672
@@ -52,6 +54,7 @@ class ReliablePublisher(config: PublisherConfig) extends Actor {
       Transaction(List(Publish(exchange.name, routingKey,
         properties = Some(PersistentDeliveryMode), mandatory = false, immediate = false, body = contents)))
     case Ok(Transaction(committedMsgs), Some(_: CommitOk)) => committedMsgs.map(m => context.parent ! SuccessfulPublish(m.body))
+    case Error(Transaction(failedMsgs), reason: Throwable) => failedMsgs.map(m => context.parent ! FailedPublish(m.body, reason))
     case other => println(s"Failed to handle message: $other")
   }
 }
