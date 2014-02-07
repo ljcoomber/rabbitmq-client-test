@@ -34,7 +34,7 @@ Whilst it is possible to automate some of the tests, they mostly involve doing a
   - [X] Success
   - [X] Failure
 - [ ] Publisher confirms
-- [ ] Queue size
+- [X] Queue size
 - [ ] Connection / channel status
 - [ ] Multiple channels
 
