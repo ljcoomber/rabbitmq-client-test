@@ -16,7 +16,7 @@ class TestPublisher extends Actor {
 
   var i = 1
 
-  TestPublisher.system.scheduler.schedule(0 seconds, 1 milliseconds) {
+  TestPublisher.system.scheduler.schedule(0 seconds, 100 milliseconds) {
     publisher ! Payload("TEST_ROUTING_KEY", s"$messagePrefix$i".getBytes)
     i = i + 1
   }
