@@ -3,7 +3,8 @@ PoC project to exercise some reliability features of RabbitMQ and client librari
 Notes:
 
 - a local instance of RabbitMQ must be running for all tests.
-- relies on a snapshot build of  amqp-client
+- relies on a snapshot build of [amqp-client](https://github.com/sstone/amqp-client)
+- some features require fixes to amqp-client (see PRs in that project for details)
 
 Whilst it is possible to automate some of the tests, they mostly involve doing atypical things (such as executing
 arbitrary Erlang code in the broker) so have largely been left manual.
