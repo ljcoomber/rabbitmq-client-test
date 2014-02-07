@@ -10,9 +10,9 @@ trait AmqpActor extends Actor {
 
   def config: BrokerConfig
 
-  def name: String
+  def name: String = "Anonymous"
 
-  def initRequests: List[Request]
+  def initRequests: List[Request] = Nil
 
   lazy val channel = makeChannel()
 
