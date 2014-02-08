@@ -28,8 +28,8 @@ Whilst it is possible to automate some of the tests, they mostly involve doing a
 # TODO
 
 - [X] Basic publisher
-- [ ] Basic consumer
-- [ ] Re-connection
+- [X] Basic consumer
+- [X] Re-connection
 - [X] Transactions
   - [X] Success
   - [X] Failure
