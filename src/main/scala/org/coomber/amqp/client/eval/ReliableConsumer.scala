@@ -34,12 +34,10 @@ class ReliableConsumer(injectedConfig: ConsumerConfig, listener: ActorRef) exten
 
   val consumer = ConnectionOwner.createChildActor(connection, Consumer.props(
     listener = Some(listener),
-    init = List(queueDecl, queueBind)
+    init = List(queueDecl, queueBind, AddQueue(queueParams))
   ), name = Some(config.consumerName))
 
   Amqp.waitForConnection(context.system, consumer).await()
-
-  consumer ! AddQueue(queueParams)
 
   override def initRequests = List(queueDecl, queueBind)
 
