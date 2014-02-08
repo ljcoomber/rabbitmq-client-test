@@ -4,10 +4,8 @@ import akka.actor.{ActorRef, Actor, ActorSystem, Props}
 import akka.testkit.TestKit
 import org.scalatest._
 import akka.testkit.ImplicitSender
-import itv.amqp.client.eval.{ReliablePublisher, Payload}
 import org.coomber.amqp.client.eval._
 import com.github.sstone.amqp.Amqp._
-import com.github.sstone.amqp.Amqp.Delivery
 import com.github.sstone.amqp.Amqp.Publish
 import com.github.sstone.amqp.Amqp.PurgeQueue
 import com.github.sstone.amqp.Amqp.Ok
@@ -35,12 +33,12 @@ class ConsumerSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitS
   // be a sign of a bad approach, also see PublisherSpec
   var consumer: ActorRef = _  // TODO: Another sign that the approach is wrong
   val parent = system.actorOf(Props(new Actor {
-    consumer = context.actorOf(Props(new ReliableConsumer(config, testActor)))
+    consumer = context.actorOf(Props(new ReliableConsumer(config, testActor)), name = "TestConsumer")
 
     def receive = {
-      case m => println("HELLO" + m); testActor forward m
+      case m => testActor forward m
     }
-  }))
+  }), name = "TestConsumerParentActor")
 
 
   // TODO: Look at why plain BeforeAndAfter didn't mix-in correctly
@@ -57,15 +55,23 @@ class ConsumerSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitS
     "not ack messages automatically" in {
       fixtureActor ! Publish(config.exchangeName, config.routingKey, testMessage)
 
-      expectMsgPF() {
-        case Delivery(consumerTag, enveloper, props, msg) => msg should equal(testMessage)
+      val envelope = expectMsgPF() {
+        case Delivery(consumerTag, envelope, _, msg) => {
+          msg should equal(testMessage)
+          envelope
+        }
       }
 
+      // TODO: Check number of unacked messages using REST API
+
+      // Shows other things can be done before ack-ing received message
       consumer ! RequestQueueInfo()
 
       expectMsgPF() {
         case QueueInfo(_, msgCount, _) => msgCount should equal(0)
       }
+
+      consumer ! AckMessage(envelope)
     }
   }
 
