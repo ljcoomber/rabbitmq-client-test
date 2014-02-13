@@ -21,6 +21,8 @@ class ConsumerConfig extends BrokerConfig {
   val queueName = "testQ"
   val routingKey = "TEST_ROUTING_KEY"
   val exchangeName = "testX"
+
+  val prefetchCount = 3
 }
 
 
@@ -34,7 +36,8 @@ class ReliableConsumer(injectedConfig: ConsumerConfig, listener: ActorRef) exten
 
   val consumer = ConnectionOwner.createChildActor(connection, Consumer.props(
     listener = Some(listener),
-    init = List(queueDecl, queueBind, AddQueue(queueParams))
+    init = List(queueDecl, queueBind, AddQueue(queueParams)),
+    channelParams = Some(ChannelParameters(qos = injectedConfig.prefetchCount))
   ), name = Some(config.consumerName))
 
   Amqp.waitForConnection(context.system, consumer).await()

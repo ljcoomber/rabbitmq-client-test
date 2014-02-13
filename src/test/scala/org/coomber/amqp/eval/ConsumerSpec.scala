@@ -11,6 +11,8 @@ import com.github.sstone.amqp.Amqp.PurgeQueue
 import com.github.sstone.amqp.Amqp.Ok
 import com.github.sstone.amqp.Amqp.Error
 import com.github.sstone.amqp.Amqp.Delivery
+import scala.concurrent.duration._
+import com.rabbitmq.client.Envelope
 
 
 class ConsumerSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitSender
@@ -72,6 +74,34 @@ class ConsumerSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitS
       }
 
       consumer ! AckMessage(envelope)
+    }
+
+    "must respect buffer limits" in {
+      1 to (2 * config.prefetchCount + 1) map { i =>
+        fixtureActor ! Publish(config.exchangeName, config.routingKey, s"$TestPublisher.messagePrefix$i".getBytes)
+      }
+
+      var envelopes = List[Envelope]()
+
+      def collectDeliveries() {
+        def collectDelivery() {
+          expectMsgPF(){
+            case Delivery(_, envelope, _, _) => envelopes = envelope :: envelopes
+          }
+        }
+
+        1 to config.prefetchCount map { _ => collectDelivery() }
+      }
+
+      collectDeliveries()
+
+      expectNoMsg(1 second)
+
+      envelopes map { consumer ! AckMessage(_) }
+
+      collectDeliveries()
+
+      expectNoMsg(1 second)
     }
   }
 
