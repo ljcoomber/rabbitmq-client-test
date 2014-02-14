@@ -10,6 +10,8 @@ scalacOptions  ++= Seq("-feature")
 
 atmosSettings
 
+parallelExecution in Test := false
+
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % "2.2.3",
   "com.github.sstone" %% "amqp-client" % "1.3-SNAPSHOT",
