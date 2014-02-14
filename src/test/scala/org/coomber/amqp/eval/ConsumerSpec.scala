@@ -1,18 +1,21 @@
 package org.coomber.amqp.eval
 
-import akka.actor.{ActorRef, Actor, ActorSystem, Props}
+import akka.actor._
 import akka.testkit.TestKit
 import org.scalatest._
 import akka.testkit.ImplicitSender
 import org.coomber.amqp.client.eval._
 import com.github.sstone.amqp.Amqp._
+import scala.concurrent.duration._
+import com.rabbitmq.client.Envelope
 import com.github.sstone.amqp.Amqp.Publish
+import org.coomber.amqp.client.eval.AckMessage
+import org.coomber.amqp.client.eval.RequestQueueInfo
 import com.github.sstone.amqp.Amqp.PurgeQueue
 import com.github.sstone.amqp.Amqp.Ok
 import com.github.sstone.amqp.Amqp.Error
+import org.coomber.amqp.client.eval.QueueInfo
 import com.github.sstone.amqp.Amqp.Delivery
-import scala.concurrent.duration._
-import com.rabbitmq.client.Envelope
 
 
 class ConsumerSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitSender
@@ -21,11 +24,12 @@ class ConsumerSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitS
   val testMessage = "TEST_MESSAGE".getBytes
 
   val fixtureActor = system.actorOf(Props(new AmqpActor {
-    def config: BrokerConfig = new BrokerConfig
+    def config: ConsumerConfig = new ConsumerConfig
 
     def receive = {
       case msg: Request => channel ! msg
-      case Ok(_, _) => // do nothing
+      case Ok(PurgeQueue(q), result) => testActor ! Ok(PurgeQueue(q), result)
+      case msg: Ok => // ignore
       case Error(request, reason) => println(s"ERROR: $reason sending $request}")  // TODO: Best way to propagate error
     }
   }))
@@ -40,12 +44,13 @@ class ConsumerSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitS
     def receive = {
       case m => testActor forward m
     }
-  }), name = "TestConsumerParentActor")
+  }))
 
 
   // TODO: Look at why plain BeforeAndAfter didn't mix-in correctly
   override def beforeEach() {
     fixtureActor ! PurgeQueue(config.queueName)
+    expectMsgPF(){ case Ok(PurgeQueue(_), _) => true }
   }
 
   val config = new ConsumerConfig
@@ -77,7 +82,7 @@ class ConsumerSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitS
     }
 
     "must respect buffer limits" in {
-      1 to (2 * config.prefetchCount + 1) map { i =>
+      1 to (2 * config.prefetchCount) map { i =>
         fixtureActor ! Publish(config.exchangeName, config.routingKey, s"$TestPublisher.messagePrefix$i".getBytes)
       }
 
@@ -97,11 +102,33 @@ class ConsumerSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitS
 
       expectNoMsg(1 second)
 
-      envelopes map { consumer ! AckMessage(_) }
+      envelopes = envelopes.dropWhile { env =>
+        consumer ! AckMessage(env)
+        true
+      }
 
       collectDeliveries()
 
       expectNoMsg(1 second)
+
+      envelopes map { consumer ! AckMessage(_) }
+    }
+
+    "allow re-delivery of nacked messages" in {
+      1 to 3 map { i =>
+        fixtureActor ! Publish(config.exchangeName, config.routingKey, s"$TestPublisher.messagePrefix$i".getBytes)
+      }
+
+      def collectDelivery() = expectMsgPF() { case delivery: Delivery => delivery }
+
+      val del1 = collectDelivery()
+      val del2 = collectDelivery()
+      consumer ! NackMessage(del2.envelope)
+      consumer ! AckMessage(del1.envelope)
+      val del3 = collectDelivery()
+      val del2_2 = collectDelivery()
+      del2_2.body should equal (del2.body)
+      consumer ! AckMessage(del2_2.envelope)
     }
   }
 
